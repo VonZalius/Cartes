@@ -240,7 +240,8 @@ int main() {
 
         window.clear();
         window.draw(backgroundSprite);
-        for (auto& button : buttons) {
+        for (auto& button : buttons)
+        {
             button.draw(window);
         }
         if (addingCard)
@@ -253,7 +254,6 @@ int main() {
             window.draw(overlay);
             window.draw(pause_text);
             window.draw(actual_input);
-            window.display();
         }
         window.display();
     }

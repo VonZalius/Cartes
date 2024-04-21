@@ -1,26 +1,31 @@
 # Linux
+# Windows
 
 # Name of the program.
-NAME     := Cartomancie
+NAME     := Cartes_JDR.exe
 
 # Sources and objects.
 SRCS     := main.cpp
 OBJS     := $(SRCS:.cpp=.o)
 
 # Define all the compiling flags.
-CXX      := g++
-CXXFLAGS := -Wall -Werror -Wextra
+CXX      := x86_64-w64-mingw32-g++
+CXXFLAGS := -Wall -Werror -Wextra 
+
+# Define path to SFML include and lib directories
+SFML_INCLUDE := -I./SFML/include
+SFML_LIBS    := -L./SFML/lib -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
 
 # Compile and create everything.
 all: $(NAME)
 
 # Compile the program with the objects.
 $(NAME): $(OBJS)
-	@$(CXX) $(OBJS) -o $@ -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio
+	@$(CXX) $(OBJS) -o $@ $(SFML_LIBS)
 
 # This won't run if the source files don't exist or are not modified.
 %.o: %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ -c $<
+	$(CXX) $(CXXFLAGS) $(SFML_INCLUDE) -o $@ -c $<
 
 # Rule to remove all the object files.
 clean:

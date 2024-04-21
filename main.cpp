@@ -5,8 +5,8 @@
 #include <iostream>
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include <iostream>
 #include <string>
+#include <fstream>
 
 void adjustButtonLayout(std::vector<Button>& buttons, int windowWidth, int windowHeight, float Ratio) {
     int numButtons = buttons.size();
@@ -43,40 +43,38 @@ void adjustButtonLayout(std::vector<Button>& buttons, int windowWidth, int windo
     }
 }
 
-void showInputOverlay(sf::RenderWindow& window, sf::Font& font) {
-    // Créer un rectangle sombre pour l'assombrissement de l'écran
-    sf::RectangleShape overlay(sf::Vector2f(window.getSize().x, window.getSize().y));
-    overlay.setFillColor(sf::Color(0, 0, 0, 150));  // Noir avec transparence
-
-    // Créer le texte "Entrez texte"
-    sf::Text text("Ecrivez le contenu\n        de la carte", font, 50);
-    text.setFillColor(sf::Color::White);
-    text.setPosition(window.getSize().x / 2 - text.getLocalBounds().width / 2,
-                     window.getSize().y / 2 - text.getLocalBounds().height / 2);
-
-    // Afficher l'overlay et le texte
-    window.draw(overlay);
-    window.draw(text);
-    window.display();
-}
-
-std::string addNewlinesEverySixChars(const std::string& input) {
+std::string addNewlinesEverySixChars(const std::string& input)
+{
     std::string output;
     int count = 0;
 
-    for (char c : input) {
+    for (char c : input)
+    {
         output += c;
         count++;
-        if (count == 6) {  // À chaque 6e caractère, ajoutez un saut de ligne
+        if (count == 6)
+        {  // À chaque 6e caractère, ajoutez un saut de ligne
             output += '\n';
             count = 0;  // Réinitialisez le compteur après l'ajout du saut de ligne
         }
+    }
+
+    // Vérifiez si un saut de ligne est ajouté en dernier sans caractère après
+    if (output.back() == '\n')
+    {
+        output.pop_back();  // Supprimez le saut de ligne final s'il n'y a rien après
     }
 
     return output;
 }
 
 // Assurez-vous que la classe Button et la fonction adjustButtonLayout sont correctement définies et incluses.
+
+bool isFileEmpty(const std::string& filename)
+{
+    std::ifstream file(filename.c_str());
+    return file.peek() == std::ifstream::traits_type::eof();
+}
 
 int main() {
 
@@ -111,42 +109,99 @@ int main() {
         return -1;
     }
 
+    // Créer un rectangle sombre pour l'assombrissement de l'écran
+    sf::RectangleShape overlay(sf::Vector2f(window.getSize().x, window.getSize().y));
+    overlay.setFillColor(sf::Color(0, 0, 0, 150));  // Noir avec transparence
+
+    // Créer le texte "Entrez texte"
+    sf::Text pause_text("Ecrivez le contenu\n        de la carte", font, 50);
+    pause_text.setFillColor(sf::Color::White);
+    pause_text.setPosition(window.getSize().x / 2 - pause_text.getLocalBounds().width / 2,
+                     window.getSize().y / 2 - pause_text.getLocalBounds().height / 2 - 200);
+
     bool allHidden;
     bool click;
-    bool addingCard = true;
+    bool addingCard = false;
 
     std::vector<Button> buttons;
-    //adjustButtonLayout(buttons, window.getSize().x, window.getSize().y - 200, 1.3);
+
+    if(isFileEmpty("data/data.txt"))
+        addingCard = true;
+    else
+    {
+        std::ifstream file("data/data.txt");
+        std::string line;
+
+        while (getline(file, line))
+        {
+            buttons.emplace_back(buttonTexture, line, font, 0, 0, 150, 200);
+        }
+        adjustButtonLayout(buttons, window.getSize().x, window.getSize().y, 1.3);
+    }
+
 
     while (window.isOpen()) {
         sf::Event event;
         while (window.pollEvent(event)) {
             if (event.type == sf::Event::Closed)
-                window.close();
+            {
+                return 0;
+            }
 
-            if (event.type == sf::Event::TextEntered) {
-                if (addingCard) {
-                    if (event.text.unicode == '\b' && !userInput.empty()) { // Handle backspace
+            if (event.type == sf::Event::TextEntered)
+            {
+                if (addingCard)
+                {
+                    if (event.text.unicode == '\b' && !userInput.empty())
+                    { // Handle backspace
                         userInput.pop_back();
-                    } else if (event.text.unicode < 128) { // Ignore non-ASCII characters
-                        userInput += static_cast<char>(event.text.unicode);
+                    }
+                    else if (event.text.unicode < 128)
+                    { // Ignore non-ASCII characters
+                        if (userInput.length() < 30)
+                        {
+                            userInput += static_cast<char>(event.text.unicode);
+                        }
                     }
                     inputText.setString(userInput);
                 }
             }
 
-            if (event.type == sf::Event::KeyPressed) {
-                if (event.key.code == sf::Keyboard::Enter) {
-                    if (!addingCard) {
+            if (event.type == sf::Event::KeyPressed)
+            {
+                if (event.key.code == sf::Keyboard::Escape)
+                {
+                    return 0;
+                }
+                else if (event.key.code == sf::Keyboard::Enter)
+                {
+                    if (!addingCard)
+                    {
                         addingCard = true; // Start adding a new card
                         userInput = ""; // Clear previous input
                         inputText.setString(userInput); // Clear the display text
-                    } else {
+                    }
+                    else
+                    {
+                        if (userInput[0] == '!' || userInput[1] == '!')
+                        {
+                            int i = 0;
+                            while(userInput[i] != '!')
+                                i++;
+                            std::string numberPart = userInput.substr(i + 1);
+                            int carte_num = std::atoi(numberPart.c_str());
+                            buttons.erase(buttons.begin() + carte_num - 1);
+                            adjustButtonLayout(buttons, window.getSize().x, window.getSize().y, 1.3);
+                            addingCard = false; // Stop adding a card
+                        }
                         // Add the new card with the user input
-                        userInput = addNewlinesEverySixChars(userInput);
-                        buttons.emplace_back(buttonTexture, userInput, font, 0, 0, 150, 200);
-                        adjustButtonLayout(buttons, window.getSize().x, window.getSize().y, 1.3);
-                        addingCard = false; // Stop adding a card
+                        else
+                        {
+                            userInput = addNewlinesEverySixChars(userInput);
+                            buttons.emplace_back(buttonTexture, userInput, font, 0, 0, 150, 200);
+                            adjustButtonLayout(buttons, window.getSize().x, window.getSize().y, 1.3);
+                            addingCard = false; // Stop adding a card
+                        }
                     }
                 }
             }
@@ -189,7 +244,17 @@ int main() {
             button.draw(window);
         }
         if (addingCard)
-            showInputOverlay(window, font);
+        {
+            sf::Text actual_input(addNewlinesEverySixChars(userInput), font, 50);
+            actual_input.setFillColor(sf::Color::White);
+            actual_input.setPosition(window.getSize().x / 2 - actual_input.getLocalBounds().width / 2,
+                     window.getSize().y / 2 - actual_input.getLocalBounds().height / 2);
+             // Afficher l'overlay et le texte
+            window.draw(overlay);
+            window.draw(pause_text);
+            window.draw(actual_input);
+            window.display();
+        }
         window.display();
     }
 

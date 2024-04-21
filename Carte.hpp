@@ -81,5 +81,10 @@ public:
         text.setScale(scaleX, scaleY);
         updateTextPosition();
     }
+
+    std::string getLabel() const
+    {
+        return text.getString();
+    }
 };
 
